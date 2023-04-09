@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+  <head>
+    <title>чат</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https:////code.jquery.com/jquery-2.2.3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+
+<script>
+  $(function() {
+    var socket = io();
+    var sender = '{{ sender }}';
+    var recipient = '{{ recipient }}';
+    socket.on('connect', function() {
+      console.log('connected');
+    });
+
+    socket.on('new_message', function(data) {
+      var sender = data.sender;
+      var recipient = data.recipient;
+      var message = data.message;
+      var datetime = data.date_time
+      //var messageText = sender + ' -> ' + recipient + ': ' + message;
+      var messageText = '<div class="message-meta">' + sender + ' | ' + (datetime ? moment(datetime).format('[Сегодня в] HH:mm') : '') + '</div><div class="message-body">' + message + '</div>';
+      $('#messages').append($('<li>').html(messageText));
+      //console.log(messageText + ' ' + datetime);
+    });
+    $('#send-message-form').submit(function(event) {
+      event.preventDefault();
+      var message = $('#message').val();
+      //console.log('sending message:', message);
+      socket.emit('send_message', [sender, recipient, message]);
+      $('#message').val('');
+    });
+  });
+</script>
+  </head>
+  <body>
+    <h1>Чат с пользователем {{ recipient }}</h1>
+    <ul id="messages">
+      {% for message in messages %}
+        {% if message.sender == sender and message.recipient == recipient %}
+          <li class="sender">
+            <div class="message-meta">(Вы) {{ message.sender }} | {{ message.date_time|datetimeformat }}</div>
+            <div class="message-body">{{ message.message }}</div>
+          </li>
+        {% elif message.sender == recipient and message.recipient == sender %}
+          <li class="recipient">
+            <div class="message-meta">{{ message.sender }} | {{ message.date_time|datetimeformat }}</div>
+            <div class="message-body">{{ message.message }}</div>
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+    <form id="send-message-form">
+      <input type="text" id="message" placeholder="Сообщение">
+      <button type="submit">Отправить</button>
+    </form>
+  </body>
+</html>
